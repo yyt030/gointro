@@ -9,11 +9,11 @@ import (
 )
 
 func main() {
-	const filename = "small.in"
+	const filename = "large.in"
 
-	p := createPipeline(filename, 512, 4)
-	writeToFile(p, "small.out")
-	printFile("small.out")
+	p := createPipeline(filename, 800000000, 4)
+	writeToFile(p, "large.out")
+	printFile("large.out")
 }
 
 func printFile(filename string) {
@@ -24,8 +24,13 @@ func printFile(filename string) {
 	defer file.Close()
 
 	p := pipeline.ReaderSource(file, -1)
+	count := 0
 	for v := range p {
 		fmt.Println(v)
+		count++
+		if count > 100 {
+			break
+		}
 	}
 }
 
@@ -43,8 +48,8 @@ func writeToFile(c <-chan int, filename string) {
 
 }
 
-func createPipeline(filename string,
-	fileSize, chunkCount int) <-chan int {
+func createPipeline(filename string, fileSize, chunkCount int) <-chan int {
+	pipeline.Init()
 	chunkSize := fileSize / chunkCount
 	sortResults := []<-chan int{}
 	for i := 0; i < chunkCount; i++ {
