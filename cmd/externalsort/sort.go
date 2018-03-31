@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"strconv"
 
 	"gointro/pipeline"
 )
@@ -11,7 +12,8 @@ import (
 func main() {
 	const filename = "large.in"
 
-	p := createPipeline(filename, 800000000, 4)
+	//p := createPipeline(filename, 800000000, 4)
+	p := createPipeline(filename, 512, 4)
 	writeToFile(p, "large.out")
 	printFile("large.out")
 }
@@ -64,5 +66,30 @@ func createPipeline(filename string, fileSize, chunkCount int) <-chan int {
 		sortResults = append(sortResults, pipeline.InMemSort(source))
 
 	}
+	return pipeline.MergeN(sortResults...)
+}
+
+func createNetworkPipeline(filename string, fileSize, chunkCount int) <-chan int {
+	pipeline.Init()
+	chunkSize := fileSize / chunkCount
+	sortResults := []<-chan int{}
+	sortAddr := []string{}
+	for i := 0; i < chunkCount; i++ {
+		file, err := os.Open(filename)
+		if err != nil {
+			panic(err)
+		}
+
+		file.Seek(int64(i*chunkSize), 0)
+		source := pipeline.ReaderSource(bufio.NewReader(file), chunkSize)
+
+		addr := ":" + strconv.Itoa(7000+i)
+		pipeline.NetworkSink(addr, pipeline.InMemSort(source))
+		sortAddr = append(sortAddr, addr)
+	}
+	for _, addr := range sortAddr {
+		sortResults = append(sortResults, pipeline.NetworkSource(addr))
+	}
+
 	return pipeline.MergeN(sortResults...)
 }
