@@ -12,8 +12,7 @@ import (
 func main() {
 	const filename = "large.in"
 
-	//p := createPipeline(filename, 800000000, 4)
-	p := createPipeline(filename, 512, 4)
+	p := createNetworkPipeline(filename, 800000000, 4)
 	writeToFile(p, "large.out")
 	printFile("large.out")
 }
@@ -87,6 +86,7 @@ func createNetworkPipeline(filename string, fileSize, chunkCount int) <-chan int
 		pipeline.NetworkSink(addr, pipeline.InMemSort(source))
 		sortAddr = append(sortAddr, addr)
 	}
+
 	for _, addr := range sortAddr {
 		sortResults = append(sortResults, pipeline.NetworkSource(addr))
 	}

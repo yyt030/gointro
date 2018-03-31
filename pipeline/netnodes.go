@@ -10,8 +10,9 @@ func NetworkSink(addr string, in <-chan int) {
 	if err != nil {
 		panic(err)
 	}
-	defer listener.Close()
+
 	go func() {
+		defer listener.Close()
 		conn, err := listener.Accept()
 		if err != nil {
 			panic(err)
@@ -19,6 +20,8 @@ func NetworkSink(addr string, in <-chan int) {
 		defer conn.Close()
 
 		writer := bufio.NewWriter(conn)
+		defer writer.Flush()
+
 		WriterSink(writer, in)
 	}()
 
