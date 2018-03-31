@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"os"
 
@@ -8,8 +9,8 @@ import (
 )
 
 func main() {
-	const filename = "largel.in"
-	const num = 100000000
+	const filename = "small.in"
+	const num = 64
 	file, err := os.Create(filename)
 	if err != nil {
 		panic(err)
@@ -17,14 +18,16 @@ func main() {
 	defer file.Close()
 
 	p := pipeline.RandomSource(num)
-	pipeline.WriterSink(file, p)
+	writer := bufio.NewWriter(file)
+	pipeline.WriterSink(writer, p)
+	writer.Flush()
 
 	file, err = os.Open(filename)
 	if err != nil {
 		panic(err)
 	}
 	defer file.Close()
-	p = pipeline.ReaderSource(file)
+	p = pipeline.ReaderSource(file, -1)
 
 	count := 0
 	for v := range p {
