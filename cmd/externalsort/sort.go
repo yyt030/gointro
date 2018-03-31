@@ -12,8 +12,8 @@ func main() {
 	const filename = "small.in"
 
 	p := createPipeline(filename, 512, 4)
-	writeToFile(p, filename)
-	printFile(filename)
+	writeToFile(p, "small.out")
+	printFile("small.out")
 }
 
 func printFile(filename string) {
