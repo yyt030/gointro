@@ -5,11 +5,15 @@ import (
 	"sync"
 )
 
-func gen(nums ...int) <-chan int {
+func gen(done chan struct{}, nums ...int) <-chan int {
 	out := make(chan int)
 	go func() {
 		for _, n := range nums {
-			out <- n
+			select {
+			case out <- n:
+			case <-done:
+				return
+			}
 		}
 		close(out)
 	}()
@@ -17,26 +21,34 @@ func gen(nums ...int) <-chan int {
 	return out
 }
 
-func sq(in <-chan int) <-chan int {
+func sq(done chan struct{}, in <-chan int) <-chan int {
 	out := make(chan int)
 	go func() {
 		for n := range in {
-			out <- n * n
+			select {
+			case out <- n * n:
+			case <-done:
+				return
+			}
 		}
 		close(out)
 	}()
 
 	return out
 }
-func merge(cs ...<-chan int) <-chan int {
+func merge(done chan struct{}, cs ...<-chan int) <-chan int {
 	var wg sync.WaitGroup
 	out := make(chan int)
 
 	output := func(c <-chan int) {
+		defer wg.Done()
 		for n := range c {
-			out <- n
+			select {
+			case out <- n:
+			case <-done:
+				return
+			}
 		}
-		wg.Done()
 	}
 	wg.Add(len(cs))
 
@@ -55,21 +67,14 @@ func merge(cs ...<-chan int) <-chan int {
 func main() {
 	// Set pipeline
 	nums := []int{2, 3, 4, 5, 6}
-	c := gen(nums...)
-	out := sq(c)
+	done := make(chan struct{})
+	defer close(done)
 
-	for n := range out {
-		fmt.Println("demo1", n)
-	}
+	in := gen(done, nums...)
+	c1 := sq(done, in)
+	c2 := sq(done, in)
 
-	for n := range sq(gen(nums...)) {
-		fmt.Println("demo2", n)
-	}
-
-	c1 := sq(gen(nums...))
-	c2 := sq(gen(nums...))
-
-	for n := range merge(c1, c2) {
+	for n := range merge(done, c1, c2) {
 		fmt.Println("demo3", n)
 	}
 }
